@@ -45,6 +45,38 @@ python run.py
 
 Abre `http://127.0.0.1:5000/`. La pantalla no realiza búsquedas todavía. Si la carpeta `chroma_data` se crea al probar almacenamiento local, no se sube a Git.
 
+## Compartir la pantalla por la misma Wi-Fi
+
+Esto sirve para que tu amigo abra la app que corre en tu laptop. No comparte el código ni permite que él use tu terminal; para el código usa GitHub. Ambos equipos deben estar conectados a una red privada de confianza.
+
+En la laptop que ejecuta Flask, abre PowerShell en el proyecto:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+$env:FLASK_HOST="0.0.0.0"
+python run.py
+```
+
+En esa laptop ejecuta `ipconfig` y busca la dirección IPv4 de Wi-Fi (normalmente comienza con `192.168.` o `10.`). Tu amigo abre `http://IP-DE-TU-LAPTOP:5000/` en el navegador. Si Windows pregunta, permite Python solo en redes privadas. Al cerrar PowerShell, la app deja de estar compartida. No uses esta opción en Wi-Fi pública ni configures reenvío de puertos de Internet.
+
+Para Docker Compose, la opción equivalente es poner `BIND_ADDRESS=0.0.0.0` en `.env` y recrear el contenedor. El valor seguro por defecto es `127.0.0.1`.
+
+## Preparar la laptop de otro integrante
+
+Primero sube tu rama `develop` a GitHub. En la laptop de tu amigo, desde PowerShell:
+
+```powershell
+git clone -b develop https://github.com/calabacin-afk/ProyectOax.git
+cd ProyectOax
+py -3.13 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+Copy-Item .env.example .env
+```
+
+Cada integrante usa su propio `.env` y su propia carpeta/volumen Chroma; esos archivos no se comparten por Git. Para programar una función, crea una rama `feature/...`, sube esa rama y abre un Pull Request hacia `develop`.
+
 ## Ejecutar con Docker Compose
 
 Después de instalar y abrir Docker Desktop:
