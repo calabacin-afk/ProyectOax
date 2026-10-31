@@ -1,26 +1,27 @@
 # Descubre Oaxaca
 
-Prototipo inicial para descubrir lugares y experiencias reales de Oaxaca mediante búsqueda tradicional, mapa y recomendaciones con Gemma 4 local.
+Plataforma para descubrir lugares y experiencias reales de Oaxaca mediante búsqueda tradicional, mapa y recomendaciones con Gemma 4 local.
 
-## Estado del código
+> “No visites solamente Oaxaca. Descúbrela de una manera diferente”.
 
-- `prototipo.html` es una maqueta visual estática.
-- Flask sirve la maqueta desde `/` y ofrece `/health/live`.
-- No están implementados todavía catálogo, autenticación, búsqueda, rutas, IA ni conexión SQLAlchemy a la base.
-- La infraestructura PostgreSQL/PostGIS/pgvector está preparada en Docker Compose; falta construirla y verificarla cuando Docker Desktop esté disponible.
+## Estado del proyecto
 
-## Requisitos para iniciar en Windows
+- `prototipo.html` es una maqueta visual estática; Flask la sirve en `/`.
+- `/health/live` confirma que Flask responde.
+- Catálogo, búsqueda, autenticación e integración de modelos todavía no están implementados.
+- El MVP usará Chroma como único almacén. No usa PostgreSQL, PostGIS ni pgvector.
+- El MVP no tiene filtro por radio o distancia. Las coordenadas opcionales se reservan para dibujar marcadores en Leaflet.
+- La conexión al `PersistentClient` se crea cuando una función la solicita; la maqueta no necesita que Ollama esté activo.
 
-1. Git (ya disponible en la computadora inspeccionada).
-2. Python 3.13 (disponible como `py -3.13` en la computadora inspeccionada).
-3. Docker Desktop con Compose v2 para ejecutar PostgreSQL.
-4. Ollama para la fase de Gemma; no es necesario para ver la maqueta.
+## Requisitos
 
-Docker Desktop y Ollama no aparecen instalados en esta computadora. No se instalaron desde este proyecto.
+- Python 3.13.
+- Para ejecutar la app en contenedor: Docker Desktop con Compose v2.
+- Para la fase IA: Ollama y modelos locales; no se necesitan para ver la maqueta.
 
-## Ejecutar la pantalla Flask
+## Ejecutar Flask en Windows
 
-En PowerShell, desde la raíz del repositorio:
+Desde PowerShell, en la carpeta del proyecto:
 
 ```powershell
 py -3.13 -m venv .venv
@@ -30,35 +31,37 @@ pip install -r requirements.txt
 Copy-Item .env.example .env
 ```
 
-Edita `.env` y reemplaza `SECRET_KEY`. Puedes generarla con:
+Edita `.env` y cambia `SECRET_KEY`. Puedes generar una clave con:
 
 ```powershell
 python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
-Después inicia Flask:
+Arranca Flask:
 
 ```powershell
 python run.py
 ```
 
-Abre `http://127.0.0.1:5000/`. La pantalla no realiza búsquedas ni llamadas externas todavía.
+Abre `http://127.0.0.1:5000/`. La pantalla no realiza búsquedas todavía. Si la carpeta `chroma_data` se crea al probar almacenamiento local, no se sube a Git.
 
-## Ejecutar PostgreSQL con Docker Compose
+## Ejecutar con Docker Compose
 
-Después de instalar Docker Desktop y arrancarlo:
+Después de instalar y abrir Docker Desktop:
 
 ```powershell
 Copy-Item .env.example .env
 docker compose up --build -d
-docker compose logs -f db
+docker compose logs -f web
 ```
 
-La base queda publicada en `localhost:5433`; dentro de Compose, Flask usa el nombre de servicio `db`. No borres el volumen `postgres_data` si quieres conservar la base local.
+Abre `http://127.0.0.1:5000/`. Chroma persiste en el volumen Docker `chroma_data`; no hay un puerto de base de datos publicado. Para detener: `docker compose down`. No uses `docker compose down -v` si quieres conservar los datos.
 
-## Ollama para la laptop de demo
+Para conectar Ollama instalado en Windows dentro del contenedor, Compose usa `host.docker.internal:11434`. Al ejecutar Flask directamente, `.env` usa `localhost:11434`.
 
-Perfil inicial a medir: `gemma4:e4b`; alternativa ligera: `gemma4:e2b`. Instala Ollama desde su página oficial y luego ejecuta:
+## Modelos locales (cuando llegue la fase IA)
+
+En la laptop informada (Ryzen 9 8940HX, 24 GB RAM, RTX 5060 Laptop con 8 GB VRAM) se probará primero Gemma 4 E4B y se conservará E2B como alternativa. Instala Ollama desde su página oficial y después:
 
 ```powershell
 ollama pull gemma4:e4b
@@ -66,14 +69,20 @@ ollama run gemma4:e4b
 ollama pull qwen3-embedding:0.6b
 ```
 
+El equipo debe medir latencia y memoria en cada computadora antes de fijar el perfil de demo.
+
+## Aviso de seguridad de Chroma
+
+La versión estable fijada de Chroma tiene avisos de seguridad publicados para ciertos usos del servidor HTTP y funciones de embeddings dinámicas. El prototipo usa persistencia embebida, no abre un servidor Chroma, y no acepta funciones de embeddings enviadas por usuarios. Mantén la app local; antes de exponerla a Internet revisa las [versiones y avisos de Chroma](https://github.com/chroma-core/chroma/releases) y actualiza a una versión corregida.
+
 ## Documentación
 
 - [Arquitectura](docs/arquitectura.md)
 - [Contratos de API](docs/api.md)
-- [Modelo de datos](docs/modelo_datos.md)
+- [Modelo de datos Chroma](docs/modelo_datos.md)
 - [Responsabilidades del equipo](docs/equipo.md)
 - [Modelos locales y hardware](docs/modelos_locales.md)
 
-## Ramas
+## Git
 
-El flujo acordado es `main` estable, `develop` integración y `feature/*` para trabajo individual. La carpeta todavía no tiene repositorio Git ni remoto GitHub; el primer commit debe hacerse en `develop`, no directamente en `main`.
+Trabajamos con `main` (estable), `develop` (integración) y ramas `feature/*`. Cada integrante hace commits descriptivos y abre Pull Requests hacia `develop`. Nunca subas `.env`, el volumen `chroma_data`, credenciales o pesos de modelos.

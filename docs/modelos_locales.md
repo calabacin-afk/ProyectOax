@@ -15,6 +15,8 @@ La ficha de NVIDIA indica 8 GB GDDR7 para la RTX 5060 Laptop; AMD publica 16 nú
 - Alternativa de menor consumo: `gemma4:e2b`.
 - No usar 26B/31B como configuración estable del hackathon. Sus estimaciones oficiales Q4 rondan 14.4 GB y 17.5 GB, respectivamente; la descarga parcial a RAM/CPU puede ser posible, pero no se asume que tenga latencia adecuada.
 - Embeddings candidato: `qwen3-embedding:0.6b`, con 1024 dimensiones en la configuración inicial. Medir calidad sobre consultas en español antes de fijarlo.
+- Chroma queda como almacén vectorial único del MVP. La colección de lugares llevará una versión asociada a `qwen3-embedding:0.6b`; cambiar modelo requiere una colección nueva y reindexar.
+- El servicio de embeddings enviará vectores explícitos a Chroma. No se cargará una función de embeddings dinámica desde nombres o parámetros recibidos del usuario.
 
 Las estimaciones de memoria cambian según cuantización, runtime, contexto y procesos concurrentes. Verificar VRAM y velocidad en la laptop real antes de cerrar la demo.
 

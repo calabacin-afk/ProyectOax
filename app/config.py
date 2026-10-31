@@ -3,8 +3,11 @@ import os
 
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY")
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    CHROMA_PATH = os.getenv("CHROMA_PATH", "./chroma_data")
+    CHROMA_COLLECTION = os.getenv(
+        "CHROMA_COLLECTION", "lugares_qwen3_embedding_0_6b_v1"
+    )
 
     OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
     GEMMA_MODEL = os.getenv("GEMMA_MODEL", "gemma4:e4b")

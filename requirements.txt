@@ -1,9 +1,6 @@
 Flask>=3.1,<4
-Flask-SQLAlchemy>=3.1,<4
-Flask-Migrate>=4,<5
-SQLAlchemy>=2,<2.1
-psycopg[binary]>=3,<4
-GeoAlchemy2>=0.17,<1
-pgvector>=0.3,<1
+chromadb==1.5.9
+pydantic>=2.11,<3
+httpx>=0.28,<1
 python-dotenv>=1,<2
 gunicorn>=23,<24

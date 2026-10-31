@@ -13,9 +13,10 @@ COPY app ./app
 COPY run.py ./run.py
 
 RUN useradd --create-home --uid 10001 appuser \
+    && mkdir -p /srv/descubre-oaxaca/chroma_data \
     && chown -R appuser:appuser /srv/descubre-oaxaca
 
 USER appuser
 EXPOSE 5000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "run:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "run:app"]
