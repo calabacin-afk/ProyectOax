@@ -20,7 +20,7 @@ Aplicación web Flask para explorar lugares con información comprobada, filtrar
 ## Requisitos
 
 - Windows 10/11, PowerShell y Python 3.13 (también puede usarse otra versión compatible con Chroma).
-- Para guardar fichas desde administración: [Ollama](https://ollama.com/download/windows) con `qwen3-embedding:0.6b` descargado.
+- Para generar el índice semántico opcional: [Ollama](https://ollama.com/download/windows) con `qwen3-embedding:0.6b` descargado. Guardar fichas no depende de Ollama.
 - Docker Desktop solo si se desea ejecutar con Docker Compose.
 
 ## Preparar en Windows
@@ -32,10 +32,10 @@ py -3.13 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 pip install -r requirements.txt
-Copy-Item .env.example .env
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
-Abre `.env` y cambia `SECRET_KEY`. Puedes crear un valor así:
+Abre `.env` y cambia `SECRET_KEY` si aún conserva el texto `REEMPLAZAR_...`. Puedes crear un valor así:
 
 ```powershell
 python -c "import secrets; print(secrets.token_urlsafe(32))"

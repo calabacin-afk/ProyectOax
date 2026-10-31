@@ -149,6 +149,9 @@ def test_admin_can_add_pending_place_and_publish_after_verification(
         pending = list_admin_places("pendiente")
     assert [place["name"] for place in pending] == ["Taller de prueba"]
     place_id = pending[0]["id"]
+    admin_list = client.get("/admin/lugares")
+    assert admin_list.status_code == 200
+    assert "Índice semántico: listo" in admin_list.get_data(as_text=True)
 
     response = client.get("/")
     assert "Taller de prueba" not in response.get_data(as_text=True)

@@ -27,7 +27,7 @@ Propiedad principal:
 - `app/services/embedding_service.py`
 - Siguiente trabajo: `app/services/ai/gemma_service.py`, `app/services/search_service.py`, ranking y evaluación
 
-Actualmente Qwen3 Embedding crea el vector de cada ficha desde Ollama. Gemma 4 está definida en configuración, pero aún no se usa. Al integrar Gemma, su módulo entregará únicamente un objeto validado con filtros; no abrirá colecciones ni ejecutará SQL.
+Actualmente Qwen3 Embedding crea el vector de cada ficha desde Ollama cuando está disponible; las fichas sin vector siguen en el catálogo tradicional. Gemma 4 está definida en configuración, pero aún no se usa. Al integrar Gemma, su módulo entregará únicamente un objeto validado con filtros; no abrirá colecciones ni ejecutará SQL.
 
 ## Interfaces acordadas
 

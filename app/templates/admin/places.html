@@ -8,7 +8,7 @@
     <div class="admin-list">
       {% for place in places %}
         <article class="admin-place">
-          <div class="admin-place-copy"><span class="place-category">{{ place.category_label }}</span><h2>{{ place.name }}</h2><p>{{ place.description|truncate(180) }}</p><small>{% if place.zone %}{{ place.zone }} · {% endif %}Estado: {{ place.status }}</small></div>
+          <div class="admin-place-copy"><span class="place-category">{{ place.category_label }}</span><h2>{{ place.name }}</h2><p>{{ place.description|truncate(180) }}</p><small>{% if place.zone %}{{ place.zone }} · {% endif %}Estado: {{ place.status }} · Índice semántico: {{ place.embedding_status }}</small></div>
           <div class="admin-place-actions">
             {% if place.status == 'verificado' %}
               <a href="{{ url_for('web.place_detail', place_id=place.id) }}" class="btn btn-outline-forest btn-sm">Ver ficha publicada</a>

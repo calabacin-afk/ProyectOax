@@ -17,7 +17,7 @@ flowchart LR
   Flask -->|filtros exactos| Chroma
 ```
 
-La búsqueda tradicional no llama a Ollama. Agregar una ficha sí lo requiere para construir el embedding que se guarda en la colección. El texto de la consulta todavía se busca por coincidencia textual, no por distancia vectorial.
+La búsqueda tradicional y el guardado de fichas no llaman a Ollama. Si está disponible, Qwen genera un vector en una colección independiente. El texto de la consulta todavía se busca por coincidencia, no por distancia vectorial.
 
 ## Organización del código
 
@@ -44,7 +44,7 @@ Los mosaicos de mapa vienen de OpenStreetMap y llevan atribución. Para tráfico
 
 ## Integración IA por fases
 
-**Hoy:** Ollama con Qwen3 Embedding crea el vector de una ficha cuando administración la guarda. `GEMMA_MODEL` está configurada, pero Gemma no está conectada todavía. No hay búsqueda semántica.
+**Hoy:** Ollama con Qwen3 Embedding intenta crear el vector de una ficha cuando administración la guarda. Si Ollama falla, la ficha conserva búsqueda tradicional y el vector queda pendiente para `generar-embeddings`. `GEMMA_MODEL` está configurada, pero Gemma no está conectada todavía. No hay búsqueda semántica de consultas.
 
 **Siguiente fase:** crear un servicio Gemma que convierta consulta en un esquema estricto validado; el backend permitirá solo categorías, presupuesto, ambiente y duración dentro de rangos definidos. El modelo nunca obtiene una conexión a Chroma, no produce SQL/IDs/coordenadas ni inventa resultados. Los filtros obligatorios los valida el backend; la recuperación consulta fichas verificadas y la explicación se construye solo con resultados recuperados. Si Ollama/Gemma falla, se usa búsqueda tradicional.
 
