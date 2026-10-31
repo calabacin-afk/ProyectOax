@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Agregar lugar · Descubre Oaxaca{% endblock %}
+{% block content %}
+<section class="container admin-page">
+  <a href="{{ url_for('admin.places') }}" class="back-link">← Volver a administración</a>
+  <div class="form-page-heading"><span class="eyebrow">Catálogo</span><h1>Agregar un lugar</h1><p>Escribe información que hayas comprobado. La ficha queda pendiente y no se publica hasta verificarla.</p></div>
+  {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+  <form method="post" class="form-panel">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+    <div class="form-section-title"><span>01</span><div><h2>Datos principales</h2><p>Estos datos formarán la ficha y su búsqueda.</p></div></div>
+    <div class="row g-3">
+      <div class="col-md-7"><label class="form-label" for="name">Nombre del lugar *</label><input class="form-control" id="name" name="name" maxlength="120" required value="{{ form.get('name','') if form else '' }}"></div>
+      <div class="col-md-5"><label class="form-label" for="category">Categoría *</label><select class="form-select" id="category" name="category" required><option value="">Selecciona una</option>{% for slug,label in categories.items() %}<option value="{{ slug }}" {% if form and form.get('category') == slug %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+      <div class="col-12"><label class="form-label" for="description">Descripción *</label><textarea class="form-control" id="description" name="description" rows="5" minlength="20" maxlength="3000" required>{{ form.get('description','') if form else '' }}</textarea><div class="form-text">Entre 20 y 3,000 caracteres. Describe únicamente información que puedas respaldar.</div></div>
+      <div class="col-md-6"><label class="form-label" for="zone">Zona o colonia</label><input class="form-control" id="zone" name="zone" maxlength="100" value="{{ form.get('zone','') if form else '' }}"></div>
+      <div class="col-md-6"><label class="form-label" for="address">Dirección</label><input class="form-control" id="address" name="address" maxlength="240" value="{{ form.get('address','') if form else '' }}"></div>
+      <div class="col-md-6"><label class="form-label" for="phone">Teléfono de contacto</label><input class="form-control" id="phone" name="phone" maxlength="40" value="{{ form.get('phone','') if form else '' }}"></div>
+      <div class="col-md-6"><label class="form-label" for="website">Sitio web</label><input class="form-control" id="website" name="website" type="url" placeholder="https://..." value="{{ form.get('website','') if form else '' }}"></div>
+      <div class="col-12"><label class="form-label" for="tags">Etiquetas</label><input class="form-control" id="tags" name="tags" maxlength="400" placeholder="Ej. familiar, comida tradicional, taller" value="{{ form.get('tags','') if form else '' }}"><div class="form-text">Separa las etiquetas con coma.</div></div>
+    </div>
+
+    <hr class="form-divider">
+    <div class="form-section-title"><span>02</span><div><h2>Datos opcionales</h2><p>Déjalos vacíos si no están disponibles o verificados.</p></div></div>
+    <div class="row g-3">
+      <div class="col-md-6"><label class="form-label" for="price_min_mxn">Precio mínimo (MXN)</label><input class="form-control" id="price_min_mxn" name="price_min_mxn" type="number" min="0" max="1000000" step="1" value="{{ form.get('price_min_mxn','') if form else '' }}"></div>
+      <div class="col-md-6"><label class="form-label" for="price_max_mxn">Precio máximo (MXN)</label><input class="form-control" id="price_max_mxn" name="price_max_mxn" type="number" min="0" max="1000000" step="1" value="{{ form.get('price_max_mxn','') if form else '' }}"></div>
+      <div class="col-md-6"><label class="form-label" for="opening_hours">Horarios</label><input class="form-control" id="opening_hours" name="opening_hours" maxlength="240" placeholder="Solo si están confirmados" value="{{ form.get('opening_hours','') if form else '' }}"></div>
+      <div class="col-md-6"><label class="form-label" for="duration_minutes">Duración aproximada (minutos)</label><input class="form-control" id="duration_minutes" name="duration_minutes" type="number" min="1" max="1440" step="1" value="{{ form.get('duration_minutes','') if form else '' }}"><div class="form-text">Solo para actividades cuya duración hayas confirmado.</div></div>
+      <div class="col-md-6"><fieldset><legend class="form-label">Ambiente confirmado</legend><div class="d-flex flex-wrap gap-3">{% for slug,label in ambiences.items() %}<div class="form-check"><input class="form-check-input" type="checkbox" id="ambience-{{ slug }}" name="ambience" value="{{ slug }}" {% if form and slug in form.getlist('ambience') %}checked{% endif %}><label class="form-check-label" for="ambience-{{ slug }}">{{ label }}</label></div>{% endfor %}</div></fieldset></div>
+      <div class="col-md-6"><fieldset><legend class="form-label">Apta para</legend><div class="d-flex flex-wrap gap-3">{% for slug,label in companions.items() %}<div class="form-check"><input class="form-check-input" type="checkbox" id="companions-{{ slug }}" name="companions" value="{{ slug }}" {% if form and slug in form.getlist('companions') %}checked{% endif %}><label class="form-check-label" for="companions-{{ slug }}">{{ label }}</label></div>{% endfor %}</div></fieldset></div>
+      <div class="col-md-6"><label class="form-label" for="photo_url">URL de fotografía</label><input class="form-control" id="photo_url" name="photo_url" type="url" placeholder="https://..." value="{{ form.get('photo_url','') if form else '' }}"></div>
+      <div class="col-12"><label class="form-label" for="photo_source_url">Fuente o licencia de fotografía</label><input class="form-control" id="photo_source_url" name="photo_source_url" type="url" placeholder="https://..." value="{{ form.get('photo_source_url','') if form else '' }}"></div>
+      <div class="col-md-6"><label class="form-label" for="latitude">Latitud</label><input class="form-control" id="latitude" name="latitude" type="number" min="-90" max="90" step="any" value="{{ form.get('latitude','') if form else '' }}"></div>
+      <div class="col-md-6"><label class="form-label" for="longitude">Longitud</label><input class="form-control" id="longitude" name="longitude" type="number" min="-180" max="180" step="any" value="{{ form.get('longitude','') if form else '' }}"></div>
+    </div>
+
+    <hr class="form-divider">
+    <div class="form-section-title"><span>03</span><div><h2>Verificación</h2><p>El catálogo público muestra únicamente fichas verificadas.</p></div></div>
+    <div class="mb-3"><label class="form-label" for="source_url">Fuente para comprobar la ficha</label><input class="form-control" id="source_url" name="source_url" type="url" placeholder="Sitio oficial, institución o fuente confiable" value="{{ form.get('source_url','') if form else '' }}"><div class="form-text">Requerida si confirmas que los datos están verificados.</div></div>
+    <div class="form-check verification-check"><input class="form-check-input" type="checkbox" id="verified" name="verified" value="yes" {% if form and form.get('verified') %}checked{% endif %}><label class="form-check-label" for="verified">Confirmo que revisé la ficha y que la fuente corresponde a este lugar.</label></div>
+    <div class="alert alert-info mt-3 mb-0">Puedes guardar lugares y usar la búsqueda tradicional aunque Ollama esté apagado. Si Qwen Embedding está disponible, también se crea su vector semántico; si no, se puede generar después.</div>
+    <div class="d-flex flex-wrap gap-2 mt-4"><button class="btn btn-forest btn-lg" type="submit">Guardar ficha</button><a href="{{ url_for('admin.places') }}" class="btn btn-outline-secondary btn-lg">Cancelar</a></div>
+  </form>
+</section>
+{% endblock %}

@@ -1,63 +1,94 @@
-# Contratos iniciales de API
+# API y rutas disponibles
 
-Estos contratos son el acuerdo de integración del MVP. Todas las respuestas exitosas usan `{"data": ..., "meta": ...}` y los errores `{"error":{"codigo":"...","mensaje":"...","detalles":...}}`.
+Este documento describe el código que existe ahora. Las rutas HTML usan formularios Jinja y sesión de Flask. La API JSON disponible es pequeña e independiente. Las rutas de IA, opiniones y escritura JSON siguen pendientes; no se debe construir un cliente suponiendo que ya funcionan.
 
-## Errores comunes
+## Sitio web
 
-- `400`: JSON o parámetros mal formados.
-- `401`: sesión requerida o credenciales inválidas.
-- `403`: permisos insuficientes o token CSRF inválido.
-- `404`: recurso inexistente o no público.
-- `409`: conflicto de ID/correo/favorito duplicado.
-- `422`: cuerpo JSON inválido según el esquema.
-- `429`: límite de solicitudes excedido.
-- `503` / `504`: Ollama u otra dependencia necesaria no disponible o agotó el tiempo.
-
-## Endpoints
-
-| Método y ruta | Solicitud / parámetros | Respuesta y validaciones |
+| Método y ruta | Entrada | Resultado |
 |---|---|---|
-| `POST /auth/registro` | `{nombre,email,password}` | `201` perfil; email normalizado y único; guardar solo hash seguro de contraseña. `409` email existente, `422` datos inválidos. |
-| `POST /auth/login` | `{email,password}` | `200` sesión y perfil; `401` mensaje genérico si falla. |
-| `POST /auth/logout` | Sesión y CSRF | `204`; invalida sesión. |
-| `GET /categorias/` | Sin cuerpo | `200` categorías activas. |
-| `GET /lugares/` | Query: `q`, `categoria`, `etiqueta`, `precio_max_mxn`, `zona`, `pagina`, `limite` | `200` lista paginada de fichas públicas. Presupuesto máximo excluye fichas sin precio verificado. No tiene parámetros de ubicación, radio ni distancia. |
-| `GET /lugares/<id>` | ID en ruta | `200` ficha pública; `404` si falta o no está publicada. |
-| `POST /lugares/` | Ficha, fuentes y fotos | `201` ficha en estado `pendiente`; solo administrador. Requiere procedencia de datos. |
-| `PUT /lugares/<id>` | Campos editables de la ficha y sus fuentes | `200`; solo administrador; valida rangos, metadatos y procedencia. |
-| `POST /busqueda/` | `{consulta?, filtros?, zona?, pagina?, limite?}` | `200` resultados de búsqueda tradicional, sin Ollama. `zona` es un filtro textual, no geográfico. |
-| `POST /ia/interpretar` | `{consulta}` | `200` `SearchIntent` validado; `503`/`504` si Gemma no responde. No incluye origen GPS ni radio. |
-| `POST /ia/buscar` | `{consulta, filtros_confirmados?}` | `200` resultados reales y `modo` (`semantico` o `tradicional`). Si Gemma falla, ejecuta búsqueda textual/filtros disponibles. |
-| `POST /ia/sorprendeme` | `{presupuesto_maximo_mxn?, duracion_max_min?, companeros?, ambiente?, categorias?}` | `200` candidatos reales. Los límites expresados de presupuesto y duración son estrictos. No acepta distancia máxima. |
-| `GET /favoritos/` | Sesión autenticada | `200` lista del usuario. |
-| `POST /favoritos/<lugar_id>` | Sesión autenticada | `201` favorito guardado; operación idempotente. `404` lugar inexistente. |
-| `DELETE /favoritos/<lugar_id>` | Sesión autenticada | `204` favorito eliminado. |
-| `POST /rutas/planificar` | `{paradas:[id,...]}`; de 2 a 8 IDs ordenados | Contrato posterior: `200` paradas con coordenadas disponibles para dibujar en mapa. No calcula kilometraje, tiempo de traslado ni ruta vial. |
+| `GET /` | Query opcional `q`, `categoria`, `zona`, `presupuesto`, `pagina` | Página principal y catálogo filtrado. |
+| `GET /lugares/` | Los mismos filtros | Catálogo HTML; 400 si un filtro tiene formato inválido. |
+| `GET /lugares/<id>` | ID Chroma | Detalle de una ficha verificada; 404 si no existe o sigue pendiente. |
+| `GET /sorprendeme` | Query opcional `categoria`, `presupuesto`, `minutos`, `con_quien`, `ambiente`, `excluir` | Ficha aleatoria entre las que pasan todos los filtros. Si no hay coincidencias, mantiene los filtros y muestra el estado vacío. |
+| `GET /categorias/` | — | JSON con categorías y slugs disponibles. |
+| `GET /health/live` | — | `{"status":"ok"}`; solo confirma que Flask responde. |
 
-## Esquema `SearchIntent`
+Para filtros en el catálogo, `q` admite hasta 120 caracteres, `zona` hasta 100, `categoria` debe ser un slug conocido y `presupuesto` es un entero de 0 a 1,000,000 MXN. Un presupuesto estricto omite lugares sin precio máximo conocido o cuyo precio máximo lo supera.
+
+“Sorpréndeme” admite presupuesto entero de 0 a 1,000,000 MXN, duración de 1 a 1,440 minutos, una opción de compañía (`solo`, `pareja`, `amigos`, `familia`) y un ambiente (`tranquilo`, `animado`, `aire-libre`, `familiar`). Si el registro no tiene el dato necesario para validar un filtro, queda fuera. Actualmente no usa ubicación, radio o distancia, ni llama a un modelo generativo.
+
+## API JSON
+
+Los resultados exitosos usan `{ "data": ..., "meta": ... }`. Los errores JSON usan `{ "error": { "codigo": ..., "mensaje": ... } }`.
+
+### `GET /api/lugares/`
+
+Query opcional: `q`, `categoria`, `zona`, `presupuesto`.
+
+Respuesta `200`:
 
 ```json
 {
-  "intencion": "comer",
-  "categorias": ["gastronomia"],
-  "tipo_comida": ["tradicional oaxaqueña"],
-  "presupuesto_maximo_mxn": 200,
-  "preferencia_presupuesto": null,
-  "ambiente": [],
-  "companeros": null,
-  "zona_texto": null,
-  "duracion_max_min": null,
-  "pregunta_aclaratoria": null
+  "data": [{"id":"...","name":"...","category":"...","status":"verificado"}],
+  "meta": {"total": 1}
 }
 ```
 
-`intencion` pertenece a un enum backend; listas y textos tienen límites de tamaño; `presupuesto_maximo_mxn` y `duracion_max_min` son enteros positivos acotados; las categorías deben ser slugs existentes. Gemma no produce coordenadas, IDs, SQL ni nombres de establecimientos. Solo se fijan importes máximos numéricos cuando la persona los expresa. “Económico” permanece como preferencia cualitativa.
+Solo devuelve fichas verificadas. `presupuesto` es entero entre 0 y 1,000,000 MXN; las fichas sin precio máximo no coinciden.
 
-La ubicación del navegador es opcional y la gestiona el frontend para centrar el mapa. No se envía a Gemma ni se usa para filtrar resultados por cercanía en el MVP.
+### `GET /api/lugares/<id>`
 
-## Reglas de resultados
+Devuelve `200` con un objeto público de ficha o `404` cuando el lugar no existe/no está publicado.
 
-- Un máximo de presupuesto excluye lugares sin precio verificado o con unidad incompatible.
-- Ningún filtro obligatorio se amplía automáticamente cuando falten resultados.
-- Las recomendaciones se generan a partir de registros devueltos por Chroma; las explicaciones solo usan datos verificados de esos registros.
-- La caída de Ollama no desactiva la búsqueda tradicional. Si Chroma no está disponible, las rutas que lo requieren responden `503` sin simular resultados.
+### `POST /busqueda/`
+
+Requiere `Content-Type: application/json`. Cuerpo:
+
+```json
+{
+  "q": "café",
+  "categoria": "cafeterias",
+  "zona": "Centro",
+  "presupuesto": 150
+}
+```
+
+Todos los campos son opcionales. Campos no reconocidos se rechazan. Devuelve `200` con las fichas y `meta.modo` igual a `tradicional`; no requiere Ollama.
+
+### Códigos de error JSON
+
+- `400`: cuerpo ausente/no JSON o propiedades no reconocidas.
+- `404`: ficha inexistente o no publicada.
+- `422`: tipo, rango o categoría inválidos.
+- `429`: límite de solicitudes.
+- `503`: almacenamiento local no disponible.
+- `500`: error interno; el detalle técnico se conserva solo en el log del servidor.
+
+## Formularios y sesión
+
+| Método y ruta | Validaciones y resultado |
+|---|---|
+| `GET/POST /auth/registro` | Nombre de 2–80 caracteres, correo normalizado, contraseña de mínimo 12 caracteres y CSRF. Crea una cuenta y sesión. Conflicto de correo: 409. |
+| `GET/POST /auth/login` | Correo y contraseña con respuesta genérica al fallar. CSRF requerido. |
+| `POST /auth/logout` | Sesión y CSRF requeridos; limpia la sesión. |
+| `GET /favoritos/` | Requiere sesión iniciada. |
+| `POST /favoritos/<id>` | Requiere sesión, ficha verificada y CSRF; alterna el favorito y regresa a la página anterior del mismo sitio. |
+| `GET /admin/lugares` | Requiere rol `admin`. |
+| `GET/POST /admin/lugares/nuevo` | Requiere admin y CSRF; crea ficha pendiente o publicada tras confirmación y fuente. Si Ollama no está disponible, guarda la ficha para búsqueda tradicional y marca el embedding como pendiente. |
+| `POST /admin/lugares/<id>/verificar` | Requiere admin, CSRF y URL de fuente `http/https`; publica la ficha. |
+
+El primer admin se crea desde consola con `python -m flask --app run:app crear-admin`.
+
+Para reintentar la generación de embeddings pendientes después de activar Ollama: `python -m flask --app run:app generar-embeddings`.
+
+## Contratos pendientes
+
+Estas rutas aún no existen y no deben considerarse parte de la integración actual:
+
+- API JSON de registro, login, logout, escritura y actualización de lugares.
+- `/ia/interpretar`, `/ia/buscar` y `/ia/sorprendeme` como API.
+- Búsqueda semántica de consulta, ranking con embeddings y explicaciones generadas por Gemma.
+- CRUD JSON de favoritos, perfiles, preferencias y opiniones.
+- Planeación de rutas con múltiples paradas.
+
+Al implementarlas se actualizarán este documento y las pruebas del endpoint correspondiente.

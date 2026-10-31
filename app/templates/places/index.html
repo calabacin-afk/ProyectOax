@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Explora Oaxaca · Descubre Oaxaca{% endblock %}
+{% block map_styles %}
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+{% endblock %}
+{% block content %}
+<section class="hero-section">
+  <div class="container hero-inner">
+    <div class="hero-copy">
+      <span class="eyebrow"><span></span> Oaxaca, a tu manera</span>
+      <h1>No visites solamente Oaxaca.<br><em>Descúbrela diferente.</em></h1>
+      <p>Encuentra espacios, sabores y experiencias locales. Consulta fichas con datos que el equipo ha revisado.</p>
+      <a class="btn btn-outline-forest mt-3" href="{{ url_for('web.surprise') }}">No sé qué hacer · Sorpréndeme</a>
+    </div>
+    <div class="search-card">
+      <form method="get" action="{{ url_for('web.places') }}" class="row g-3 align-items-end">
+        <div class="col-12">
+          <label class="form-label" for="q">¿Qué te gustaría descubrir?</label>
+          <input class="form-control form-control-lg" id="q" name="q" value="{{ query }}" placeholder="Ej. cocina tradicional, textiles, museo..." maxlength="120">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="categoria">Categoría</label>
+          <select class="form-select" id="categoria" name="categoria">
+            <option value="">Todas las categorías</option>
+            {% for slug, label in categories.items() %}
+              <option value="{{ slug }}" {% if selected_category == slug %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="zona">Zona o colonia</label>
+          <input class="form-control" id="zona" name="zona" value="{{ zone }}" maxlength="100" placeholder="Opcional">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="presupuesto">Presupuesto máximo (MXN)</label>
+          <input class="form-control" id="presupuesto" name="presupuesto" value="{{ budget }}" type="number" min="0" max="1000000" step="1" placeholder="Opcional">
+        </div>
+        <div class="col-12 d-flex flex-wrap align-items-center gap-3">
+          <button class="btn btn-forest btn-lg" type="submit">Buscar lugares <span aria-hidden="true">→</span></button>
+          <a class="clear-link" href="{{ url_for('web.places') }}">Limpiar filtros</a>
+          <span class="search-note">El presupuesto solo incluye lugares con precio verificado.</span>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<section class="container section-block" aria-labelledby="category-heading">
+  <div class="section-heading">
+    <div><span class="eyebrow">Elige tu camino</span><h2 id="category-heading">Explora por categoría</h2></div>
+    <a href="{{ url_for('web.places') }}" class="text-link">Ver todo <span aria-hidden="true">→</span></a>
+  </div>
+  <div class="category-pills">
+    {% for slug, label in categories.items() %}
+      <a class="category-pill {% if selected_category == slug %}active{% endif %}" href="{{ url_for('web.places', categoria=slug) }}">{{ label }}</a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="container section-block results-section" aria-labelledby="results-heading">
+  <div class="section-heading results-heading">
+    <div><span class="eyebrow">Catálogo local</span><h2 id="results-heading">{% if query or selected_category or zone or budget %}Resultados para tu búsqueda{% else %}Lugares para descubrir{% endif %}</h2></div>
+    <span class="result-count">{{ total }} lugar{% if total != 1 %}es{% endif %} verificado{% if total != 1 %}s{% endif %}</span>
+  </div>
+
+  {% if map_points %}
+    <div class="map-shell mb-4">
+      <div class="map-toolbar"><div><strong>Mapa de lugares</strong><small>Solo se muestran ubicaciones proporcionadas y verificadas.</small></div><button id="locate-me" class="btn btn-outline-forest btn-sm" type="button">Centrar en mi ubicación</button></div>
+      <div id="places-map" class="places-map" role="application" aria-label="Mapa interactivo de lugares de Oaxaca"></div>
+      <div class="map-attribution">Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors</div>
+    </div>
+  {% endif %}
+
+  {% if places %}
+    <div class="row g-4">
+      {% for place in places %}
+        <div class="col-sm-6 col-xl-4">
+          <article class="place-card h-100">
+            <a href="{{ url_for('web.place_detail', place_id=place.id) }}" class="place-image-link" aria-label="Ver detalles de {{ place.name }}">
+              {% if place.photo_url %}
+                <img class="place-image" src="{{ place.photo_url }}" alt="Fotografía de {{ place.name }}" loading="lazy">
+              {% else %}
+                <div class="place-image placeholder-image"><span aria-hidden="true">✳</span><small>Fotografía pendiente</small></div>
+              {% endif %}
+              <span class="verified-badge">Verificado</span>
+            </a>
+            <div class="place-card-body">
+              <div class="place-card-top"><span class="place-category">{{ place.category_label }}</span>
+                {% if current_user %}
+                  <form method="post" action="{{ url_for('favorites.toggle', place_id=place.id) }}">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                    <button class="favorite-icon {% if place.id in favorite_ids %}selected{% endif %}" type="submit" aria-label="{% if place.id in favorite_ids %}Quitar de{% else %}Agregar a{% endif %} favoritos">{% if place.id in favorite_ids %}♥{% else %}♡{% endif %}</button>
+                  </form>
+                {% endif %}
+              </div>
+              <h3><a href="{{ url_for('web.place_detail', place_id=place.id) }}">{{ place.name }}</a></h3>
+              <p>{{ place.description|truncate(145) }}</p>
+              <div class="place-meta">
+                {% if place.zone %}<span>{{ place.zone }}</span>{% endif %}
+                {% if place.price_min_mxn is not none %}<span>${{ place.price_min_mxn }}–${{ place.price_max_mxn }} MXN</span>{% else %}<span>Precio no disponible</span>{% endif %}
+              </div>
+              <a class="place-more" href="{{ url_for('web.place_detail', place_id=place.id) }}">Ver ficha completa <span aria-hidden="true">→</span></a>
+            </div>
+          </article>
+        </div>
+      {% endfor %}
+    </div>
+    {% if page_count > 1 %}
+      <nav class="mt-4" aria-label="Páginas de resultados">
+        <ul class="pagination justify-content-center">
+          {% for page_number in range(1, page_count + 1) %}
+            <li class="page-item {% if page_number == page %}active{% endif %}"><a class="page-link" href="{{ url_for('web.places', q=query, categoria=selected_category, zona=zone, presupuesto=budget, pagina=page_number) }}">{{ page_number }}</a></li>
+          {% endfor %}
+        </ul>
+      </nav>
+    {% endif %}
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-icon" aria-hidden="true">✳</div>
+      {% if query or selected_category or zone or budget %}
+        <h3>No encontramos coincidencias</h3>
+        <p>Prueba otra palabra o quita algún filtro. No ampliamos tu presupuesto ni inventamos resultados.</p>
+        <a href="{{ url_for('web.places') }}" class="btn btn-outline-forest">Ver catálogo completo</a>
+      {% else %}
+        <h3>Estamos preparando el catálogo</h3>
+        <p>Aún no hay lugares publicados con información verificada. Los administradores pueden agregar fichas y fuentes verificables.</p>
+        {% if current_user and current_user.role == 'admin' %}<a href="{{ url_for('admin.new_place') }}" class="btn btn-forest">Agregar el primer lugar</a>{% endif %}
+      {% endif %}
+    </div>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+{% if map_points %}
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    (() => {
+      const points = {{ map_points|tojson }};
+      const map = L.map('places-map', {scrollWheelZoom: false});
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+      const bounds = [];
+      points.forEach((point) => {
+        const marker = L.marker([point.lat, point.lon]).addTo(map);
+        const popup = document.createElement('div');
+        const title = document.createElement('strong');
+        const link = document.createElement('a');
+        title.textContent = point.name;
+        link.href = point.url;
+        link.textContent = 'Ver ficha';
+        popup.append(title, document.createElement('br'), link);
+        marker.bindPopup(popup);
+        bounds.push([point.lat, point.lon]);
+      });
+      if (bounds.length === 1) map.setView(bounds[0], 14);
+      else map.fitBounds(bounds, {padding: [24, 24]});
+
+      document.getElementById('locate-me')?.addEventListener('click', () => {
+        if (!navigator.geolocation) return alert('Tu navegador no permite compartir ubicación.');
+        navigator.geolocation.getCurrentPosition(
+          ({coords}) => map.setView([coords.latitude, coords.longitude], 14),
+          () => alert('No se pudo obtener tu ubicación. Puedes seguir usando el mapa.'),
+          {enableHighAccuracy: false, timeout: 10000}
+        );
+      });
+    })();
+  </script>
+{% endif %}
+{% endblock %}

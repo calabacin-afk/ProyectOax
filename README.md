@@ -1,27 +1,31 @@
 # Descubre Oaxaca
 
-Plataforma para descubrir lugares y experiencias reales de Oaxaca mediante búsqueda tradicional, mapa y recomendaciones con Gemma 4 local.
+“No visites solamente Oaxaca. Descúbrela de una manera diferente”.
 
-> “No visites solamente Oaxaca. Descúbrela de una manera diferente”.
+Aplicación web Flask para explorar lugares con información comprobada, filtrar el catálogo, ver ubicaciones en un mapa, guardar favoritos y administrar fichas. No se incluyen establecimientos de ejemplo: el catálogo empieza vacío para evitar presentar datos inventados como reales.
 
-## Estado del proyecto
+## Qué funciona en esta versión
 
-- `prototipo.html` es una maqueta visual estática; Flask la sirve en `/`.
-- `/health/live` confirma que Flask responde.
-- Catálogo, búsqueda, autenticación e integración de modelos todavía no están implementados.
-- El MVP usará Chroma como único almacén. No usa PostgreSQL, PostGIS ni pgvector.
-- El MVP no tiene filtro por radio o distancia. Las coordenadas opcionales se reservan para dibujar marcadores en Leaflet.
-- La conexión al `PersistentClient` se crea cuando una función la solicita; la maqueta no necesita que Ollama esté activo.
+- Catálogo responsive con búsqueda por texto, categoría, zona y presupuesto máximo.
+- Página de detalle para cada lugar verificado.
+- Mapa Leaflet/OpenStreetMap cuando la ficha contiene coordenadas verificadas. La ubicación del visitante es opcional y solo centra el mapa.
+- Registro, inicio de sesión y favoritos.
+- Panel de administración para agregar fichas, revisar pendientes y publicarlas con una fuente.
+- Experiencia “Sorpréndeme” que elige una ficha verificada respetando presupuesto, tiempo, compañía y ambiente cuando esos datos existen.
+- API JSON de lectura y búsqueda tradicional en `/api/lugares/`, `/api/lugares/<id>` y `POST /busqueda/`.
+- Chroma persistente para catálogo, usuarios y favoritos. Qwen3 Embedding vía Ollama genera vectores cuando está disponible; no es requisito para guardar ni buscar fichas por filtros tradicionales.
+
+**Todavía pendiente:** interpretación de consultas con Gemma 4, recuperación semántica de consultas, reseñas, carga de imágenes, rutas con varias paradas y una API JSON completa para cuentas y administración. La variable `GEMMA_MODEL` está preparada, pero este código aún no llama a Gemma. El catálogo y la búsqueda tradicional siguen funcionando aunque Ollama esté apagado.
 
 ## Requisitos
 
-- Python 3.13.
-- Para ejecutar la app en contenedor: Docker Desktop con Compose v2.
-- Para la fase IA: Ollama y modelos locales; no se necesitan para ver la maqueta.
+- Windows 10/11, PowerShell y Python 3.13 (también puede usarse otra versión compatible con Chroma).
+- Para guardar fichas desde administración: [Ollama](https://ollama.com/download/windows) con `qwen3-embedding:0.6b` descargado.
+- Docker Desktop solo si se desea ejecutar con Docker Compose.
 
-## Ejecutar Flask en Windows
+## Preparar en Windows
 
-Desde PowerShell, en la carpeta del proyecto:
+En PowerShell, desde la carpeta del proyecto:
 
 ```powershell
 py -3.13 -m venv .venv
@@ -31,90 +35,120 @@ pip install -r requirements.txt
 Copy-Item .env.example .env
 ```
 
-Edita `.env` y cambia `SECRET_KEY`. Puedes generar una clave con:
+Abre `.env` y cambia `SECRET_KEY`. Puedes crear un valor así:
 
 ```powershell
 python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
-Arranca Flask:
+Pega el resultado después de `SECRET_KEY=`. Inicia la aplicación:
 
 ```powershell
 python run.py
 ```
 
-Abre `http://127.0.0.1:5000/`. La pantalla no realiza búsquedas todavía. Si la carpeta `chroma_data` se crea al probar almacenamiento local, no se sube a Git.
+Visita [http://127.0.0.1:5000](http://127.0.0.1:5000). Detén el servidor con `Ctrl+C` en esa misma terminal.
 
-## Compartir la pantalla por la misma Wi-Fi
+## Crear una cuenta administradora
 
-Esto sirve para que tu amigo abra la app que corre en tu laptop. No comparte el código ni permite que él use tu terminal; para el código usa GitHub. Ambos equipos deben estar conectados a una red privada de confianza.
-
-En la laptop que ejecuta Flask, abre PowerShell en el proyecto:
+Con el entorno virtual activo, ejecuta:
 
 ```powershell
-.\.venv\Scripts\Activate.ps1
-$env:FLASK_HOST="0.0.0.0"
-python run.py
+python -m flask --app run:app crear-admin
 ```
 
-En esa laptop ejecuta `ipconfig` y busca la dirección IPv4 de Wi-Fi (normalmente comienza con `192.168.` o `10.`). Tu amigo abre `http://IP-DE-TU-LAPTOP:5000/` en el navegador. Si Windows pregunta, permite Python solo en redes privadas. Al cerrar PowerShell, la app deja de estar compartida. No uses esta opción en Wi-Fi pública ni configures reenvío de puertos de Internet.
+Escribe el correo, nombre y contraseña cuando el comando los solicite. Después inicia sesión en la página y abre **Administrar**. Las fichas nuevas quedan pendientes hasta que un administrador las revise y agregue una fuente verificable.
 
-Para Docker Compose, la opción equivalente es poner `BIND_ADDRESS=0.0.0.0` en `.env` y recrear el contenedor. El valor seguro por defecto es `127.0.0.1`.
+## Habilitar embeddings semánticos (opcional)
 
-## Preparar la laptop de otro integrante
-
-Primero sube tu rama `develop` a GitHub. En la laptop de tu amigo, desde PowerShell:
+Instala Ollama y ejecuta estos comandos en una terminal:
 
 ```powershell
-git clone -b develop https://github.com/calabacin-afk/ProyectOax.git
-cd ProyectOax
-py -3.13 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-Copy-Item .env.example .env
+ollama pull qwen3-embedding:0.6b
+ollama list
 ```
 
-Cada integrante usa su propio `.env` y su propia carpeta/volumen Chroma; esos archivos no se comparten por Git. Para programar una función, crea una rama `feature/...`, sube esa rama y abre un Pull Request hacia `develop`.
+Deja Ollama abierto. La configuración local está en `.env`:
 
-## Ejecutar con Docker Compose
+```dotenv
+OLLAMA_URL=http://localhost:11434
+EMBEDDING_MODEL=qwen3-embedding:0.6b
+EMBEDDING_DIMENSION=1024
+```
 
-Después de instalar y abrir Docker Desktop:
+La aplicación valida que Ollama devuelva 1024 valores numéricos antes de guardar el vector. Sin Ollama puedes guardar lugares y usar búsqueda tradicional; el vector queda pendiente. Cuando Ollama esté listo, ejecuta:
 
 ```powershell
-Copy-Item .env.example .env
+python -m flask --app run:app generar-embeddings
+```
+
+Un cambio futuro de modelo o dimensión requiere una colección Chroma versionada nueva y reindexar las fichas.
+
+## Ejecutar pruebas
+
+```powershell
+pip install -r requirements-dev.txt
+python -m pytest -q
+```
+
+Las pruebas usan un directorio temporal y no cargan lugares a `chroma_data`.
+
+## Docker Compose
+
+Primero crea `.env` y configura `SECRET_KEY` como se indicó arriba. Luego:
+
+```powershell
 docker compose up --build -d
 docker compose logs -f web
 ```
 
-Abre `http://127.0.0.1:5000/`. Chroma persiste en el volumen Docker `chroma_data`; no hay un puerto de base de datos publicado. Para detener: `docker compose down`. No uses `docker compose down -v` si quieres conservar los datos.
-
-Para conectar Ollama instalado en Windows dentro del contenedor, Compose usa `host.docker.internal:11434`. Al ejecutar Flask directamente, `.env` usa `localhost:11434`.
-
-## Modelos locales (cuando llegue la fase IA)
-
-En la laptop informada (Ryzen 9 8940HX, 24 GB RAM, RTX 5060 Laptop con 8 GB VRAM) se probará primero Gemma 4 E4B y se conservará E2B como alternativa. Instala Ollama desde su página oficial y después:
+La aplicación queda en [http://127.0.0.1:5000](http://127.0.0.1:5000). La base Chroma persiste en el volumen `chroma_data`. Para detener:
 
 ```powershell
-ollama pull gemma4:e4b
-ollama run gemma4:e4b
-ollama pull qwen3-embedding:0.6b
+docker compose down
 ```
 
-El equipo debe medir latencia y memoria en cada computadora antes de fijar el perfil de demo.
+Para Ollama instalado en Windows, Compose usa `host.docker.internal:11434`. No publiques ese puerto de Ollama en Internet.
 
-## Aviso de seguridad de Chroma
+## Modelos locales y hardware
 
-La versión estable fijada de Chroma tiene avisos de seguridad publicados para ciertos usos del servidor HTTP y funciones de embeddings dinámicas. El prototipo usa persistencia embebida, no abre un servidor Chroma, y no acepta funciones de embeddings enviadas por usuarios. Mantén la app local; antes de exponerla a Internet revisa las [versiones y avisos de Chroma](https://github.com/chroma-core/chroma/releases) y actualiza a una versión corregida.
+La laptop informada tiene Ryzen 9 8940HX, 24 GB de RAM, RTX 5060 Laptop de 8 GB y SSD de 1 TB. El catálogo actual de Ollama incluye `gemma4:e2b` y `gemma4:e4b`; Google estima 2.9 GB y 4.5 GB de memoria de modelo Q4, antes de sumar contexto y el resto del runtime. Para empezar la integración local se recomienda medir `gemma4:e2b`; E4B se puede probar como alternativa y verificar consumo real. Los modelos 26B A4B y 31B no son la opción inicial para esta GPU.
+
+```powershell
+ollama pull gemma4:e2b
+ollama run gemma4:e2b
+```
+
+Los nombres y tamaños pueden cambiar. Consulta el [catálogo de Gemma 4 en Ollama](https://ollama.com/library/gemma4) y los [requisitos de memoria de Google](https://ai.google.dev/gemma/docs/core?hl=es-419) al preparar la demo. Aún falta conectar Gemma al flujo de búsqueda y validar sus respuestas en el backend.
+
+## Compartir la aplicación por la misma Wi-Fi
+
+En la laptop que corre Flask, permite conexiones solo en una red privada de confianza:
+
+```powershell
+$env:FLASK_HOST="0.0.0.0"
+python run.py
+```
+
+Ejecuta `ipconfig`, encuentra la IPv4 de Wi-Fi y comparte `http://IP-DE-TU-LAPTOP:5000` con tu compañero. Esto solo comparte la aplicación en ejecución; para compartir código, ambos usan GitHub. Cada equipo debe tener su propio `.env`; no se comparte por Git.
+
+## Datos y privacidad
+
+- Los datos locales viven en `chroma_data/` y están ignorados por Git.
+- `.env`, contraseñas, tokens, datos de modelos y registros locales no deben subirse.
+- La geolocalización del navegador solo se solicita al pulsar el botón y no se almacena ni envía al servidor.
+- Las fichas públicas son las que tienen estado verificado. El presupuesto estricto excluye lugares cuyo precio se desconoce.
+- Los mapas usan teselas de OpenStreetMap con atribución. Para tráfico alto o producción, debe configurarse un proveedor que permita ese volumen según sus condiciones.
+- La versión de Chroma del proyecto no debe exponerse como servidor HTTP público; el contenedor usa cliente persistente embebido y un solo worker.
 
 ## Documentación
 
 - [Arquitectura](docs/arquitectura.md)
-- [Contratos de API](docs/api.md)
+- [API disponible y pendiente](docs/api.md)
 - [Modelo de datos Chroma](docs/modelo_datos.md)
 - [Responsabilidades del equipo](docs/equipo.md)
 - [Modelos locales y hardware](docs/modelos_locales.md)
 
 ## Git
 
-Trabajamos con `main` (estable), `develop` (integración) y ramas `feature/*`. Cada integrante hace commits descriptivos y abre Pull Requests hacia `develop`. Nunca subas `.env`, el volumen `chroma_data`, credenciales o pesos de modelos.
+Usamos `main` para la versión estable, `develop` para integración y ramas `feature/*` para cambios. Cada integrante abre Pull Request hacia `develop`. No subimos `.env`, el volumen `chroma_data`, credenciales, información personal innecesaria ni pesos de modelos.

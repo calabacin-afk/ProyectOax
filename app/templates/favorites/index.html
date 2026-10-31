@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Mis favoritos · Descubre Oaxaca{% endblock %}
+{% block content %}
+<section class="container section-block">
+  <div class="section-heading"><div><span class="eyebrow">Tu colección</span><h1 class="page-title">Mis lugares favoritos</h1></div><a href="{{ url_for('web.places') }}" class="text-link">Seguir explorando <span aria-hidden="true">→</span></a></div>
+  {% if places %}
+    <div class="row g-4">
+      {% for place in places %}
+        <div class="col-sm-6 col-xl-4"><article class="place-card h-100">
+          <a href="{{ url_for('web.place_detail', place_id=place.id) }}" class="place-image-link">
+            {% if place.photo_url %}<img class="place-image" src="{{ place.photo_url }}" alt="Fotografía de {{ place.name }}" loading="lazy">{% else %}<div class="place-image placeholder-image"><span aria-hidden="true">✳</span><small>Fotografía pendiente</small></div>{% endif %}
+            <span class="verified-badge">Verificado</span>
+          </a>
+          <div class="place-card-body"><span class="place-category">{{ place.category_label }}</span><h2><a href="{{ url_for('web.place_detail', place_id=place.id) }}">{{ place.name }}</a></h2><p>{{ place.description|truncate(145) }}</p><a class="place-more" href="{{ url_for('web.place_detail', place_id=place.id) }}">Ver ficha completa <span aria-hidden="true">→</span></a></div>
+        </article></div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state"><div class="empty-icon" aria-hidden="true">♡</div><h2>Aún no guardas lugares</h2><p>Cuando encuentres uno que te guste, guárdalo y aparecerá aquí.</p><a href="{{ url_for('web.places') }}" class="btn btn-forest">Explorar lugares</a></div>
+  {% endif %}
+</section>
+{% endblock %}

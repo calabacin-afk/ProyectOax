@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Sorpréndeme · Descubre Oaxaca{% endblock %}
+{% block content %}
+<section class="container admin-page">
+  <div class="form-page-heading">
+    <span class="eyebrow">Una idea para hoy</span>
+    <h1>Sorpréndeme</h1>
+    <p>Cuéntanos qué plan te gustaría. Solo recomendamos fichas publicadas y verificadas en el catálogo.</p>
+  </div>
+
+  <form method="get" action="{{ url_for('web.surprise') }}" class="form-panel mb-4">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label" for="surprise-category">¿Qué te gustaría hacer?</label>
+        <select class="form-select" id="surprise-category" name="categoria">
+          <option value="">Lo que sea</option>
+          {% for slug, label in categories.items() %}<option value="{{ slug }}" {% if filters.categoria == slug %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="surprise-budget">Presupuesto máximo (MXN)</label>
+        <input class="form-control" id="surprise-budget" name="presupuesto" type="number" min="0" max="1000000" step="1" value="{{ filters.presupuesto }}" placeholder="Sin límite">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="surprise-duration">Tiempo disponible (minutos)</label>
+        <input class="form-control" id="surprise-duration" name="minutos" type="number" min="1" max="1440" step="1" value="{{ filters.minutos }}" placeholder="Sin límite">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="surprise-companion">¿Con quién vas?</label>
+        <select class="form-select" id="surprise-companion" name="con_quien">
+          <option value="">Cualquiera</option>
+          {% for slug, label in companions.items() %}<option value="{{ slug }}" {% if filters.con_quien == slug %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="surprise-ambience">Ambiente</label>
+        <select class="form-select" id="surprise-ambience" name="ambiente">
+          <option value="">Cualquiera</option>
+          {% for slug, label in ambiences.items() %}<option value="{{ slug }}" {% if filters.ambiente == slug %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="d-flex flex-wrap gap-2 mt-4">
+      <button class="btn btn-forest btn-lg" type="submit">Dame una idea <span aria-hidden="true">✳</span></button>
+      <a class="btn btn-outline-secondary btn-lg" href="{{ url_for('web.surprise') }}">Limpiar</a>
+    </div>
+    <p class="form-text mt-3 mb-0">Si defines un presupuesto máximo, se excluyen fichas sin precio verificado. No usamos distancia ni ubicación para decidir.</p>
+  </form>
+
+  {% if place %}
+    <article class="detail-layout surprise-result">
+      <div class="detail-main">
+        <a href="{{ url_for('web.place_detail', place_id=place.id) }}" class="place-image-link surprise-image">
+          {% if place.photo_url %}<img class="place-image" src="{{ place.photo_url }}" alt="Fotografía de {{ place.name }}" loading="lazy">{% else %}<div class="place-image placeholder-image"><span aria-hidden="true">✳</span><small>Fotografía pendiente</small></div>{% endif %}
+          <span class="verified-badge">Verificado</span>
+        </a>
+        <div class="detail-content">
+          <span class="place-category">{{ place.category_label }}</span>
+          <h2 class="mt-2"><a class="surprise-title" href="{{ url_for('web.place_detail', place_id=place.id) }}">{{ place.name }}</a></h2>
+          <p class="detail-description">{{ place.description }}</p>
+          <a class="btn btn-forest" href="{{ url_for('web.place_detail', place_id=place.id) }}">Ver detalles y mapa <span aria-hidden="true">→</span></a>
+          {% if has_another %}<a class="btn btn-outline-forest ms-1" href="{{ url_for('web.surprise', categoria=filters.categoria, presupuesto=filters.presupuesto, minutos=filters.minutos, con_quien=filters.con_quien, ambiente=filters.ambiente, excluir=place.id) }}">Otra opción</a>{% endif %}
+        </div>
+      </div>
+      <aside class="info-panel">
+        <h2>¿Por qué esta idea?</h2>
+        <ul class="surprise-reasons">{% for reason in reasons %}<li>{{ reason }}</li>{% endfor %}</ul>
+        <p class="form-text mb-0">La recomendación se basa en los datos verificados de esta ficha.</p>
+      </aside>
+    </article>
+  {% elif request.args %}
+    <div class="empty-state">
+      <div class="empty-icon" aria-hidden="true">✳</div>
+      <h2>Aún no encontramos una opción verificada</h2>
+      <p>Prueba quitando algún filtro o vuelve cuando haya más lugares verificados. No relajamos tu presupuesto ni completamos datos desconocidos.</p>
+      <a class="btn btn-outline-forest" href="{{ url_for('web.places') }}">Explorar el catálogo</a>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-icon" aria-hidden="true">✳</div>
+      <h2>El catálogo aún está empezando</h2>
+      <p>Cuando haya fichas verificadas, te recomendaremos una que coincida con tu plan.</p>
+      <a class="btn btn-outline-forest" href="{{ url_for('web.places') }}">Explorar lugares</a>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

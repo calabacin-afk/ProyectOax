@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}{{ place.name }} · Descubre Oaxaca{% endblock %}
+{% block map_styles %}
+  {% if place.latitude is not none and place.longitude is not none %}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  {% endif %}
+{% endblock %}
+{% block content %}
+<section class="container detail-page">
+  <nav aria-label="Migas de pan" class="breadcrumb-wrap"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="{{ url_for('web.index') }}">Inicio</a></li><li class="breadcrumb-item"><a href="{{ url_for('web.places', categoria=place.category) }}">{{ place.category_label }}</a></li><li class="breadcrumb-item active" aria-current="page">{{ place.name }}</li></ol></nav>
+  <div class="detail-layout">
+    <article class="detail-main">
+      <div class="detail-photo">
+        {% if place.photo_url %}
+          <img src="{{ place.photo_url }}" alt="Fotografía de {{ place.name }}">
+        {% else %}
+          <div class="placeholder-image detail-placeholder"><span aria-hidden="true">✳</span><p>Este lugar aún no tiene fotografía disponible</p></div>
+        {% endif %}
+      </div>
+      <div class="detail-content">
+        <div class="d-flex flex-wrap gap-2 align-items-center mb-3"><span class="place-category">{{ place.category_label }}</span><span class="verified-badge position-static">Información verificada</span></div>
+        <h1>{{ place.name }}</h1>
+        <p class="detail-description">{{ place.description }}</p>
+        <div class="detail-actions">
+          {% if current_user %}
+            <form method="post" action="{{ url_for('favorites.toggle', place_id=place.id) }}">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+              <button class="btn {% if is_favorite %}btn-outline-forest{% else %}btn-forest{% endif %}" type="submit">{% if is_favorite %}♥ Guardado en favoritos{% else %}♡ Guardar en favoritos{% endif %}</button>
+            </form>
+          {% else %}
+            <a class="btn btn-outline-forest" href="{{ url_for('auth.login') }}">Inicia sesión para guardar</a>
+          {% endif %}
+          {% if place.website %}<a class="btn btn-outline-secondary" href="{{ place.website }}" target="_blank" rel="noopener noreferrer">Visitar sitio web ↗</a>{% endif %}
+        </div>
+      </div>
+    </article>
+    <aside class="detail-sidebar" aria-label="Información del lugar">
+      <div class="info-panel">
+        <h2>Información</h2>
+        <dl class="place-facts">
+          <div><dt>Dirección</dt><dd>{{ place.address or 'No proporcionada' }}</dd></div>
+          {% if place.zone %}<div><dt>Zona</dt><dd>{{ place.zone }}</dd></div>{% endif %}
+          <div><dt>Precio</dt><dd>{% if place.price_min_mxn is not none %}${{ place.price_min_mxn }}–${{ place.price_max_mxn }} MXN{% else %}No disponible{% endif %}</dd></div>
+          <div><dt>Horario</dt><dd>{{ place.opening_hours or 'No proporcionado' }}</dd></div>
+          {% if place.phone %}<div><dt>Contacto</dt><dd><a href="tel:{{ place.phone }}">{{ place.phone }}</a></dd></div>{% endif %}
+        </dl>
+        {% if place.tags %}<div class="detail-tags">{% for tag in place.tags %}<span>{{ tag }}</span>{% endfor %}</div>{% endif %}
+        {% if place.source_url %}<p class="source-note">Fuente de verificación: <a href="{{ place.source_url }}" target="_blank" rel="noopener noreferrer">consultar fuente ↗</a></p>{% endif %}
+      </div>
+      {% if place.latitude is not none and place.longitude is not none %}
+        <div class="info-panel map-detail-panel">
+          <h2>Ubicación</h2>
+          <div id="detail-map" class="detail-map" aria-label="Mapa del lugar"></div>
+          <div class="map-attribution">Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors</div>
+          <a class="map-link" href="https://www.openstreetmap.org/?mlat={{ place.latitude }}&mlon={{ place.longitude }}#map=17/{{ place.latitude }}/{{ place.longitude }}" target="_blank" rel="noopener noreferrer">Abrir en OpenStreetMap ↗</a>
+        </div>
+      {% endif %}
+    </aside>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{% if place.latitude is not none and place.longitude is not none %}
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    const map = L.map('detail-map', {scrollWheelZoom: false}).setView([{{ place.latitude }}, {{ place.longitude }}], 16);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+    L.marker([{{ place.latitude }}, {{ place.longitude }}]).addTo(map).bindPopup({{ place.name|tojson }}).openPopup();
+  </script>
+{% endif %}
+{% endblock %}
