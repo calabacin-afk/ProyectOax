@@ -59,6 +59,8 @@ python -m flask --app run:app crear-admin
 
 Escribe el correo, nombre y contraseña cuando el comando los solicite. Después inicia sesión en la página y abre **Administrar**. Las fichas nuevas quedan pendientes hasta que un administrador las revise y agregue una fuente verificable.
 
+Ejecuta este comando antes de iniciar Flask. Si la app ya está abierta, deténla con `Ctrl+C` primero: el almacén Chroma local debe usarlo un solo proceso a la vez.
+
 ## Habilitar embeddings semánticos (opcional)
 
 Instala Ollama y ejecuta estos comandos en una terminal:
@@ -81,6 +83,8 @@ La aplicación valida que Ollama devuelva 1024 valores numéricos antes de guard
 ```powershell
 python -m flask --app run:app generar-embeddings
 ```
+
+Detén Flask con `Ctrl+C` antes de ejecutar el comando y vuelve a iniciar `python run.py` después.
 
 Un cambio futuro de modelo o dimensión requiere una colección Chroma versionada nueva y reindexar las fichas.
 
