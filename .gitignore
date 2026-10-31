@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+instance/
+*.pem
+*.key
+
+# Test and tooling output
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+.mypy_cache/
+
+# Local databases, logs, model weights and caches
+*.db
+*.sqlite
+*.log
+models/
+ollama/
+*.gguf
+*.safetensors
+*.bin
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
